@@ -20,3 +20,23 @@ class LeadError(Exception):
         Lead email is undeliverable.
         """
         return f"Lead email is undeliverable for lead instance: {data}"
+    
+
+class ApiError(Exception):
+    """
+    Errors related to api requests.
+    """
+
+    @classmethod
+    def hunter_error(self, domain):
+        """
+        There was an issue making a request to Hunter.io for a given domain.
+        """
+        return f"Error when making request to Hunter with domain: {domain}"
+    
+    @classmethod
+    def twitter_error(self):
+        """
+        There was an issue making a request to Twitter for a given account.
+        """
+        return f""

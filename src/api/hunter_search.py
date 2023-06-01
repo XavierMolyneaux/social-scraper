@@ -5,7 +5,9 @@ ref: https://hunter.io/api/domain-search
 Note: In our case the domain will come from the search/filtering made on twitter. - 5/9/2023
 """
 import os
+import requests
 from src.data_model.lead import HunterLead
+from src.exceptions import ApiError
 
 class HunterSearch:
     """
@@ -27,8 +29,11 @@ class HunterSearch:
             domain (str): A company's we domain.
         """
         url = f"https://api.hunter.io/v2/domain-search?domain={self.domain}&api_key={self._api_key}"
-        request = 1
-        response = 2
+        request = request.get(url)
+        if request.status_code == 200:
+            return request.json()
+        else:
+           raise ApiError.hunter_error(self.domain)
 
     def create_lead(self, lead_data, company, country, state, city) -> HunterLead:
         """
@@ -52,7 +57,6 @@ class HunterSearch:
                 domain = self.domain,
                 state = state,
                 city = city
-
             )
 
     def create_list_from_leads(self, data) -> list[HunterLead]:
