@@ -7,6 +7,7 @@ ref: https://docs.tweepy.org/en/stable/client.html & https://docs.tweepy.org/en/
 """
 import os
 import json
+import tweepy
 
 from src.data_model.social_domain import SocialMediaUser
 
@@ -16,7 +17,15 @@ class TwitterScrape:
     """
 
     def __init__(self, handle) -> None:
-        self._api_key = os.getenv("TWITTER_API_KEY")
+        """
+        Authenticate Twitter client and establish keyword filters.
+        ref: https://docs.tweepy.org/en/stable/authentication.html
+        """
+        self.client = tweepy.Client(consumer_key=os.getenv("TWITTER_CONSUMER_KEY"),
+                                    consumer_secret=os.getenv("TWITTER_CONSUMER_SECRET"), 
+                                    access_token=os.getenv("TWITTER_ACCESS_TOKEN"),
+                                    access_token_secret=os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
+                                    )
         self.handle = handle
         self.domain_list = list()
         # create accepted keywords list.
@@ -32,19 +41,25 @@ class TwitterScrape:
 
     def twitter_search(self):
         """
-        Function used to filter through an account followers and gather relevant data.
+        Function used to gather follower data.
         """
-        pass
+        # get userID of given handle
+        user = self.client.get_user(username=self.handle)
+        user_id = user["data"]["id"]
+        # use userID to fetch followers
+        followers = self.client.get_users_followers(id=user_id, user_fields=["description", "location", "username", "url"])
+        return followers
+
 
     def parse_account_data(self, account):
         """
         Method to extract domains and any other required account data from Twitter's response.
         """
         return SocialMediaUser(
-            name="",
-            domain="",
-            description="",
-            external_id="",
+            name=account["username"],
+            domain=account["url"],
+            description=account["description"],
+            external_id=self.handle,
             source="Twitter",
             country="US"
         )
@@ -54,14 +69,20 @@ class TwitterScrape:
         Method to determine if the account is relevant based on it's bio/description. The account must contain a keyword
         within the the accepted keywords list and none in the blacklisted keywords list.
         """
-        pass
-
+        accepted_keyword_found = False
+        for word in data["description"]:
+            if word in self.blacklist_keywords:
+                return False
+            if word in self.accepted_keywords:
+                accepted_keyword_found = True
+        return accepted_keyword_found
+        
     def create_domain_list(self, followers):
         """
         Method to add relevant domains to our list. 
         """ 
-        for account in followers:
+        for account in followers["data"]:
             data = self.parse_account_data(account)
-            if self.relevant_account:
+            if self.relevant_account(data):
                 self.domain_list.append(data["url"])
         return self.domain_list
